@@ -13,7 +13,7 @@ import Data.Function
 import qualified System.IO.Strict as SIO
 import qualified Data.Text as T
 import Web.Twitter.Conduit hiding (map,lookup)
-import Network.HTTP.Conduit hiding (lookup)
+import Network.HTTP.Conduit
 import Web.Authenticate.OAuth
 import System.Environment
 import qualified Data.ByteString.Char8 as S8
@@ -47,8 +47,8 @@ updateFreqInfo :: DeerId -> IO ()
 updateFreqInfo did = do
     fi <- deerFreqInfo
     ct <- getCurrentTimestamp
-    let (count, _) = findDeer fi did
-        entry = (did, (succ count, Just ct))
+    let (c, _) = findDeer fi did
+        entry = (did, (succ c, Just ct))
         newFI = (entry :) -- :)
               . filter ((/= did) . fst)
               $ fi
