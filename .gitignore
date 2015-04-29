@@ -16,3 +16,4 @@ cabal.sandbox.config
 *.hp
 /post-tweet.sh
 /deerinfo.txt
+/auth.conf

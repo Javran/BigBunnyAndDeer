@@ -9,13 +9,14 @@ import qualified Data.Text as T
 import Web.Twitter.Conduit hiding (map,lookup)
 import Network.HTTP.Conduit
 import Web.Authenticate.OAuth
-import System.Environment
-import qualified Data.ByteString.Char8 as S8
 import qualified Data.IntMap as IM
+import Data.Either.Utils
+import Data.ConfigFile
 
 import Data.BigBunnyAndDeer.DeerText
 import Data.BigBunnyAndDeer.DeerInfo
 import Data.BigBunnyAndDeer.Type
+import Data.BigBunnyAndDeer.Twitter
 
 pickNextDeer :: DeerTextDb -> IO DeerId
 pickNextDeer db = do
@@ -38,26 +39,12 @@ main = do
     did <- pickNextDeer db
     let msg = printf "%d. %s\n" did (findDeerText db did)
     putStrLn ("Posting message: " ++ msg)
+    cfgVal <- readfile emptyCP { optionxform = id } "auth.conf"
+    let cp = forceEither cfgVal
+    putStrLn $ forceEither $ get cp "DEFAULT" "OAUTH_CONSUMER_KEY"
+    return ()
     twInfo <- getTWInfoFromEnv
     print =<< withManager (\mgr -> call twInfo mgr $ update (T.pack msg))
-
-getOAuthTokens :: IO (OAuth, Credential)
-getOAuthTokens = do
-    consumerKey <- getEnv' "OAUTH_CONSUMER_KEY"
-    consumerSecret <- getEnv' "OAUTH_CONSUMER_SECRET"
-    accessToken <- getEnv' "OAUTH_ACCESS_TOKEN"
-    accessSecret <- getEnv' "OAUTH_ACCESS_SECRET"
-    let oauth = twitterOAuth
-            { oauthConsumerKey = consumerKey
-            , oauthConsumerSecret = consumerSecret
-            }
-        cred = Credential
-            [ ("oauth_token", accessToken)
-            , ("oauth_token_secret", accessSecret)
-            ]
-    return (oauth, cred)
-  where
-    getEnv' = (S8.pack <$>) . getEnv
 
 getTWInfoFromEnv :: IO TWInfo
 getTWInfoFromEnv = do
