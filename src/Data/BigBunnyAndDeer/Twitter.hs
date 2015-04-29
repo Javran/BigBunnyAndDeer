@@ -1,10 +1,12 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Data.BigBunnyAndDeer.Twitter
-  ( getOAuthTokens
+  ( postTweet
   ) where
 
 import Control.Applicative
+import qualified Data.Text as T
 import Web.Twitter.Conduit hiding (map,lookup)
+import Network.HTTP.Conduit
 import Web.Authenticate.OAuth
 import qualified Data.ByteString.Char8 as S8
 import Data.Either.Utils
@@ -28,3 +30,13 @@ getOAuthTokens = do
             , ("oauth_token_secret", accessSecret)
             ]
     return (oauth, cred)
+
+postTweet :: String -> IO ()
+postTweet msg = do
+    twInfo <- getTWInfoFromEnv
+    print =<< withManager (\mgr -> call twInfo mgr $ update (T.pack msg))
+
+getTWInfoFromEnv :: IO TWInfo
+getTWInfoFromEnv = do
+    (oa, cred) <- getOAuthTokens
+    return $ (setCredential oa cred def) { twProxy = Nothing }

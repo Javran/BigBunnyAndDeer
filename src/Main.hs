@@ -5,13 +5,7 @@ import Control.Monad.Random
 import Data.List
 import Data.Monoid
 import Data.Function
-import qualified Data.Text as T
-import Web.Twitter.Conduit hiding (map,lookup)
-import Network.HTTP.Conduit
-import Web.Authenticate.OAuth
 import qualified Data.IntMap as IM
-import Data.Either.Utils
-import Data.ConfigFile
 
 import Data.BigBunnyAndDeer.DeerText
 import Data.BigBunnyAndDeer.DeerInfo
@@ -39,14 +33,4 @@ main = do
     did <- pickNextDeer db
     let msg = printf "%d. %s\n" did (findDeerText db did)
     putStrLn ("Posting message: " ++ msg)
-    cfgVal <- readfile emptyCP { optionxform = id } "auth.conf"
-    let cp = forceEither cfgVal
-    putStrLn $ forceEither $ get cp "DEFAULT" "OAUTH_CONSUMER_KEY"
-    return ()
-    twInfo <- getTWInfoFromEnv
-    print =<< withManager (\mgr -> call twInfo mgr $ update (T.pack msg))
-
-getTWInfoFromEnv :: IO TWInfo
-getTWInfoFromEnv = do
-    (oa, cred) <- getOAuthTokens
-    return $ (setCredential oa cred def) { twProxy = Nothing }
+    postTweet msg
