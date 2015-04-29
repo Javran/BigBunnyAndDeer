@@ -1,7 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-import Network.Curl
 import Control.Applicative
-import Control.Arrow
 import Data.Maybe
 import Data.Time
 import System.Directory
@@ -19,19 +17,17 @@ import System.Environment
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.IntMap as IM
 
+import Data.BigBunnyAndDeer.DeerText
+
+type DeerFreqInfo = IM.IntMap DeerFreqEntry
+
 type DeerId = Int
 type DeerFreqEntry = ( Int -- total times posted
                      , Maybe Integer -- last access time in UTC
                      )
 
-type DeerFreqInfo = IM.IntMap DeerFreqEntry
-type DeerDb = [(DeerId,String)]
-
 findDeerEntry :: DeerFreqInfo -> DeerId -> DeerFreqEntry
 findDeerEntry dfi k = fromMaybe (0,Nothing) (IM.lookup k dfi)
-
-findDeerQuote :: DeerDb -> DeerId -> String
-findDeerQuote db k = fromJust (lookup k db)
 
 deerInfo :: FilePath
 deerInfo = "deerinfo.txt"
@@ -63,32 +59,7 @@ getCurrentTimestamp = utcToInteger <$> getCurrentTime
     utcToInteger :: UTCTime -> Integer
     utcToInteger = truncate . (* 1000) . (`diffUTCTime` tZero)
 
-deerLink :: URLString
-deerLink = "https://gist.githubusercontent.com/Javran/\
-             \8595d3587a8aa0c5255f/raw/gistfile1.md"
-
-getDeerRaw :: IO String
-getDeerRaw = do
-    result <- curlGetString deerLink []
-    case result of
-        (CurlOK, s) -> return s
-        (err,_) -> error (show err)
-
-parseDeer :: String -> DeerDb
-parseDeer =
-    lines >>>
-    filter (not . null) >>>
-    mapMaybe (parseLine >>> safePass) >>>
-    filter censorShip
-  where
-    parseLine = span (/= '.')
-    safePass :: (String,String) -> Maybe (Int,String)
-    safePass (k,'.':' ':v)
-      | any (null . snd) (reads k :: [(Int,String)]) = Just (read k,v)
-    safePass _ = Nothing
-    censorShip = fst >>> (/= 6)
-
-pickNextDeer :: DeerDb -> IO DeerId
+pickNextDeer :: DeerTextDb -> IO DeerId
 pickNextDeer db = do
     -- frequency varies, so we give up its control.
     fi <- deerFreqInfo
@@ -96,7 +67,7 @@ pickNextDeer db = do
         getDeerFreq = fst . findDeerEntry fi
         cmp d1 d2 = (compare `on` getLastTime) d1 d2 -- no history / early history first
                  <> (compare `on` getDeerFreq) d1 d2 -- frequency
-        ids = sortBy cmp (map fst db)
+        ids = sortBy cmp (map fst (IM.toList db))
     -- choose one entry
     pickId <- (ids !!) <$> getRandomR (0, length ids-1)
     -- record choice
@@ -105,9 +76,9 @@ pickNextDeer db = do
 
 main :: IO ()
 main = do
-    db <- parseDeer <$> getDeerRaw
+    db <- fetchDatabase
     did <- pickNextDeer db
-    let msg = printf "%d. %s\n" did (findDeerQuote db did)
+    let msg = printf "%d. %s\n" did (findDeerText db did)
     putStrLn ("Posting message: " ++ msg)
     twInfo <- getTWInfoFromEnv
     print =<< withManager (\mgr -> call twInfo mgr $ update (T.pack msg))
