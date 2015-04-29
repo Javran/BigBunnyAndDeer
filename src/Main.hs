@@ -1,28 +1,28 @@
 {-# LANGUAGE OverloadedStrings #-}
-import Control.Applicative
 import Text.Printf
-import Control.Monad.Random
 import Data.List
-import Data.Monoid
 import Data.Function
 import qualified Data.IntMap as IM
 
 import Data.BigBunnyAndDeer.DeerText
 import Data.BigBunnyAndDeer.DeerInfo
 import Data.BigBunnyAndDeer.Type
+import Data.BigBunnyAndDeer.Util
 import Data.BigBunnyAndDeer.Twitter
 
 pickNextDeer :: DeerTextDb -> IO DeerId
 pickNextDeer db = do
-    -- frequency varies, so we give up its control.
-    fi <- getDeerInfo
-    let getLastTime = lastAccess . findDeerEntry fi
-        getDeerFreq = totalTime . findDeerEntry fi
-        cmp d1 d2 = (compare `on` getLastTime) d1 d2 -- no history / early history first
-                 <> (compare `on` getDeerFreq) d1 d2 -- frequency
-        ids = sortBy cmp (map fst (IM.toList db))
+    -- WARNING: to get a complete set of DeerId,
+    --   DO NOT use deerinfo as which might be incomplete
+    -- frequency varies, so we give up its control
+    di <- getDeerInfo
+    let dis = IM.keys db
+        getLastTime = lastAccess . findDeerEntry di
+        -- most recent tweets appear earlier, so we can drop them
+        disRecentFirst = sortBy (flip compare `on` getLastTime) dis
+        disCandidate = drop 30 disRecentFirst
     -- choose one entry
-    pickId <- (ids !!) <$> getRandomR (0, length ids-1)
+    pickId <- choice disCandidate
     -- record choice
     updateFreqInfo pickId
     return pickId
