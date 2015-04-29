@@ -17,18 +17,18 @@ import Network.HTTP.Conduit
 import Web.Authenticate.OAuth
 import System.Environment
 import qualified Data.ByteString.Char8 as S8
+import qualified Data.IntMap as IM
 
 type DeerId = Int
 type DeerFreqEntry = ( Int -- total times posted
                      , Maybe Integer -- last access time in UTC
                      )
 
-type DeerFreqInfo = [(DeerId,DeerFreqEntry)]
+type DeerFreqInfo = IM.IntMap DeerFreqEntry
 type DeerDb = [(DeerId,String)]
 
--- TODO: findDeer/findDeerEntry
-findDeer :: DeerFreqInfo -> DeerId -> DeerFreqEntry
-findDeer dfi k = fromMaybe (0,Nothing) (lookup k dfi)
+findDeerEntry :: DeerFreqInfo -> DeerId -> DeerFreqEntry
+findDeerEntry dfi k = fromMaybe (0,Nothing) (IM.lookup k dfi)
 
 findDeerQuote :: DeerDb -> DeerId -> String
 findDeerQuote db k = fromJust (lookup k db)
@@ -41,16 +41,17 @@ deerFreqInfo = do
     e <- doesFileExist deerInfo
     if e
        then read <$> SIO.readFile deerInfo
-       else return []
+       else return mempty
 
 updateFreqInfo :: DeerId -> IO ()
 updateFreqInfo did = do
     fi <- deerFreqInfo
     ct <- getCurrentTimestamp
-    let (c, _) = findDeer fi did
+    let (c, _) = findDeerEntry fi did
         entry = (did, (succ c, Just ct))
         newFI = (entry :) -- :)
               . filter ((/= did) . fst)
+              . IM.toList
               $ fi
     writeFile deerInfo (show newFI)
 
@@ -91,8 +92,8 @@ pickNextDeer :: DeerDb -> IO DeerId
 pickNextDeer db = do
     -- frequency varies, so we give up its control.
     fi <- deerFreqInfo
-    let getLastTime = snd . findDeer fi
-        getDeerFreq = fst . findDeer fi
+    let getLastTime = snd . findDeerEntry fi
+        getDeerFreq = fst . findDeerEntry fi
         cmp d1 d2 = (compare `on` getLastTime) d1 d2 -- no history / early history first
                  <> (compare `on` getDeerFreq) d1 d2 -- frequency
         ids = sortBy cmp (map fst db)
