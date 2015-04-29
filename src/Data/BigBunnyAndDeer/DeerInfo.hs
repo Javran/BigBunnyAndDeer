@@ -32,14 +32,13 @@ deerEntryToPair (DeerEntry a b) = (a,b)
 updateFreqInfo :: DeerId -> IO ()
 updateFreqInfo did = do
     fi <- getDeerInfo
-    ct <- getCurrentTimestamp
-    let (DeerEntry c _) = findDeerEntry fi did
-        entry = (did, DeerEntry (succ c) (Just ct))
-        newFI = (entry :) -- :)
-              . filter ((/= did) . fst)
-              . IM.toList
-              $ fi
-    writeFile deerInfoFilePath (unlines (map (show . second deerEntryToPair) newFI))
+    ct <- Just <$> getCurrentTimestamp
+    let alterEntry :: Maybe DeerEntry -> DeerEntry
+        alterEntry old = case old of
+          Nothing -> DeerEntry 1 ct
+          Just (DeerEntry tt _) -> DeerEntry (succ tt) ct
+        newFI = IM.alter (Just . alterEntry) did fi
+    writeFile deerInfoFilePath (dumpDeerInfo newFI)
 
 deerInfoFilePath :: FilePath
 deerInfoFilePath = "deerinfo.txt"
@@ -49,6 +48,12 @@ getRawDeerInfo = SIO.readFile deerInfoFilePath
 
 parseLine :: String -> (Int, (Int, Maybe Integer))
 parseLine = read
+
+dumpDeerInfo :: DeerInfo -> String
+dumpDeerInfo =
+    IM.toList >>>
+    map (second deerEntryToPair >>> show) >>>
+    unlines
 
 parseRawDeerInfo :: String -> DeerInfo
 parseRawDeerInfo =
