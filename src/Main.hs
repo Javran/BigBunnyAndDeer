@@ -14,7 +14,9 @@ import Data.BigBunnyAndDeer.Util
 import Data.BigBunnyAndDeer.Twitter
 import Data.BigBunnyAndDeer.BigBunny
 
-import Data.Default
+import Data.BigBunnyAndDeer.OptParse
+import Options.Applicative
+
 import Data.Random.RVar
 import Data.Random.Shuffle.Weighted
 
@@ -64,7 +66,9 @@ pickNextDeer = do
 
 main :: IO ()
 main = do
-    (did,dtext) <- runBigBunny def pickNextDeer
+    let opts = info (helper <*> configP) fullDesc
+    conf <- execParser opts
+    (did,dtext) <- runBigBunny conf pickNextDeer
     let msg = printf "%d. %s\n" did dtext
     putStrLn ("Posting message: " ++ msg)
-    postTweet (authFilePath def) msg
+    postTweet (authFilePath conf) msg

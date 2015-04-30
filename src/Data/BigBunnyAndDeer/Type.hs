@@ -1,5 +1,6 @@
 module Data.BigBunnyAndDeer.Type where
 
+import Network.Curl
 import Data.Default
 import Control.Monad.State
 import Control.Monad.Reader
@@ -19,7 +20,7 @@ type DeerInfo = IM.IntMap DeerEntry
 type BigBunnyT m a = StateT DeerInfo (ReaderT (DeerTextDb,BigBunnyConfig) m) a
 
 data BigBunnyConfig = BigBunnyConfig
-  { textDatabaseURL  :: String
+  { textDatabaseURL  :: URLString
   , authFilePath     :: FilePath
   , deerInfoFilePath :: FilePath
   }
