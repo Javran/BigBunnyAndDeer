@@ -34,6 +34,7 @@ executable BigBunnyAndDeer
                        random-fu,
                        rvar,
                        mwc-random,
-                       random-extras
+                       random-extras,
+                       primitive
   hs-source-dirs:      src
   default-language:    Haskell2010

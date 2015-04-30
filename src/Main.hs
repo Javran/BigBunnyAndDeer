@@ -1,11 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 import Text.Printf
 import Data.List
 import Control.Arrow
 import Data.Function
 import Control.Monad.State
 import Control.Applicative
-import Control.Monad.Reader
+import Control.Monad.Primitive
 
 import Data.BigBunnyAndDeer.DeerText
 import Data.BigBunnyAndDeer.DeerInfo
@@ -18,12 +18,13 @@ import Data.Random.RVar
 import Data.Random.Shuffle.Weighted
 
 import Data.Random
-import System.Random.MWC (create)
+import System.Random.MWC
 
-pickNextDeer :: BigBunnyT IO (DeerId,DeerText)
+pickNextDeer :: forall m . (Functor m, MonadIO m)
+             => BigBunnyT m (DeerId,DeerText)
 pickNextDeer = do
-    db <- ask
-    di <- get
+    db <- getTextDb
+    di <- getDeerInfo
     -- WARNING: to get a complete set of DeerId,
     --   DO NOT use deerinfo as which might be incomplete
     -- frequency varies, so we give up its control
@@ -46,15 +47,19 @@ pickNextDeer = do
 
         chooseId :: RVar DeerId
         chooseId = head <$> weightedSample 1 weightedCandidate
+        execRVar :: forall a . RVar a -> BigBunnyT m a
+        execRVar rv = liftIO $ withSystemRandom
+            thereIsNoFuckingLambdaToBeAvoided
+          where
+            thereIsNoFuckingLambdaToBeAvoided :: Gen (PrimState IO) -> IO a
+            thereIsNoFuckingLambdaToBeAvoided gen = sampleFrom gen rv
+
     -- choose one entry
-    pickId <- liftIO $ do
-        mwc <- create
-        sampleFrom mwc chooseId
-    ts <- liftIO getCurrentTimestamp
+    pickId <- execRVar chooseId
+    ts <- getCurrentTimestamp
     -- record choice
     modify (updateDeerInfo pickId ts)
     return (pickId, findDeerText db pickId)
-
 
 main :: IO ()
 main = do

@@ -1,7 +1,7 @@
 module Data.BigBunnyAndDeer.DeerInfo
   ( DeerEntry(..)
   , DeerInfo
-  , getDeerInfo
+  , fetchDeerInfo
   , findDeerEntry
   , updateFreqInfo
   , updateDeerInfo
@@ -34,7 +34,7 @@ deerEntryToPair (DeerEntry a b) = (a,b)
 
 updateFreqInfo :: DeerId -> IO ()
 updateFreqInfo did = do
-    fi <- getDeerInfo
+    fi <- fetchDeerInfo
     ct <- Just <$> getCurrentTimestamp
     let alterEntry :: Maybe DeerEntry -> DeerEntry
         alterEntry old = case old of
@@ -76,8 +76,8 @@ parseRawDeerInfo =
     map (parseLine >>> second (uncurry DeerEntry)) >>>
     IM.fromList
 
-getDeerInfo :: IO DeerInfo
-getDeerInfo = do
+fetchDeerInfo :: IO DeerInfo
+fetchDeerInfo = do
     b <- doesFileExist deerInfoFilePath
     if b
        then parseRawDeerInfo <$> getRawDeerInfo
