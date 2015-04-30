@@ -13,7 +13,7 @@ import Data.BigBunnyAndDeer.Type
 import Data.BigBunnyAndDeer.Util
 import Data.BigBunnyAndDeer.Twitter
 import Data.BigBunnyAndDeer.BigBunny
-
+import Data.BigBunnyAndDeer.Parens
 import Data.BigBunnyAndDeer.OptParse
 import Options.Applicative
 
@@ -69,6 +69,7 @@ main = do
     let opts = info (helper <*> configP) fullDesc
     conf <- execParser opts
     (did,dtext) <- runBigBunny conf pickNextDeer
-    let msg = printf "%d. %s\n" did dtext
+    lp <- getSomeLParens
+    let msg = printf "%d. %s" did dtext ++ lp
     putStrLn ("Posting message: " ++ msg)
     postTweet (authFilePath conf) msg
