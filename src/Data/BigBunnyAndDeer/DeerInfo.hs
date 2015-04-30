@@ -1,8 +1,11 @@
 module Data.BigBunnyAndDeer.DeerInfo
   ( DeerEntry(..)
+  , DeerInfo
   , getDeerInfo
   , findDeerEntry
   , updateFreqInfo
+  , updateDeerInfo
+  , writeDeerInfo
   ) where
 
 import Data.Maybe
@@ -38,7 +41,19 @@ updateFreqInfo did = do
           Nothing -> DeerEntry 1 ct
           Just (DeerEntry tt _) -> DeerEntry (succ tt) ct
         newFI = IM.alter (Just . alterEntry) did fi
-    writeFile deerInfoFilePath (dumpDeerInfo newFI)
+    writeDeerInfo newFI
+
+updateDeerInfo :: DeerId -> Integer -> DeerInfo -> DeerInfo
+updateDeerInfo did newTS = IM.alter (Just . alterEntry) did
+  where
+    alterEntry :: Maybe DeerEntry -> DeerEntry
+    alterEntry old = case old of
+      Nothing -> DeerEntry 1 (Just newTS)
+      Just (DeerEntry tt _) -> DeerEntry (succ tt) (Just newTS)
+
+
+writeDeerInfo :: DeerInfo -> IO ()
+writeDeerInfo di = writeFile deerInfoFilePath (dumpDeerInfo di)
 
 deerInfoFilePath :: FilePath
 deerInfoFilePath = "deerinfo.txt"

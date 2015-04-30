@@ -1,5 +1,6 @@
 module Data.BigBunnyAndDeer.DeerText
   ( DeerTextDb
+  , allDeerIds
   , lookupDeerText
   , findDeerText
   , fetchDatabase
@@ -14,6 +15,9 @@ import Data.BigBunnyAndDeer.Type
 import qualified Data.IntMap as IM
 
 type DeerTextDb = IM.IntMap DeerText
+
+allDeerIds :: DeerTextDb -> [DeerId]
+allDeerIds = IM.keys
 
 lookupDeerText :: DeerTextDb -> DeerId -> Maybe DeerText
 lookupDeerText = flip IM.lookup
