@@ -1,47 +1,24 @@
 module Data.BigBunnyAndDeer.DeerInfo
-  ( DeerEntry(..)
-  , DeerInfo
-  , fetchDeerInfo
-  , findDeerEntry
-  , updateFreqInfo
+  ( findDeerEntry
   , updateDeerInfo
   , writeDeerInfo
+  , parseRawDeerInfo
+  , fetchDeerInfo
   ) where
 
 import Data.Maybe
 import Control.Applicative
 import Control.Arrow
+import Control.Monad.IO.Class
 import System.Directory
 import qualified System.IO.Strict as SIO
 import qualified Data.IntMap as IM
 import Data.Default
 
 import Data.BigBunnyAndDeer.Type
-import Data.BigBunnyAndDeer.Util
-
-data DeerEntry = DeerEntry
-  { totalTime  :: Int
-  , lastAccess :: Maybe Integer
-  }
-
-instance Default DeerEntry where
-    def = DeerEntry def def
-
-type DeerInfo = IM.IntMap DeerEntry
 
 deerEntryToPair :: DeerEntry -> (Int, Maybe Integer)
 deerEntryToPair (DeerEntry a b) = (a,b)
-
-updateFreqInfo :: DeerId -> IO ()
-updateFreqInfo did = do
-    fi <- fetchDeerInfo
-    ct <- Just <$> getCurrentTimestamp
-    let alterEntry :: Maybe DeerEntry -> DeerEntry
-        alterEntry old = case old of
-          Nothing -> DeerEntry 1 ct
-          Just (DeerEntry tt _) -> DeerEntry (succ tt) ct
-        newFI = IM.alter (Just . alterEntry) did fi
-    writeDeerInfo newFI
 
 updateDeerInfo :: DeerId -> Integer -> DeerInfo -> DeerInfo
 updateDeerInfo did newTS = IM.alter (Just . alterEntry) did
@@ -52,14 +29,15 @@ updateDeerInfo did newTS = IM.alter (Just . alterEntry) did
       Just (DeerEntry tt _) -> DeerEntry (succ tt) (Just newTS)
 
 
-writeDeerInfo :: DeerInfo -> IO ()
-writeDeerInfo di = writeFile deerInfoFilePath (dumpDeerInfo di)
+fetchDeerInfo :: FilePath -> IO DeerInfo
+fetchDeerInfo fp = do
+    b <- liftIO $ doesFileExist fp
+    if b
+       then parseRawDeerInfo <$> getRawDeerInfo fp
+       else return def
 
-deerInfoFilePath :: FilePath
-deerInfoFilePath = "deerinfo.txt"
-
-getRawDeerInfo :: IO String
-getRawDeerInfo = SIO.readFile deerInfoFilePath
+getRawDeerInfo :: FilePath -> IO String
+getRawDeerInfo = SIO.readFile
 
 parseLine :: String -> (Int, (Int, Maybe Integer))
 parseLine = read
@@ -76,12 +54,8 @@ parseRawDeerInfo =
     map (parseLine >>> second (uncurry DeerEntry)) >>>
     IM.fromList
 
-fetchDeerInfo :: IO DeerInfo
-fetchDeerInfo = do
-    b <- doesFileExist deerInfoFilePath
-    if b
-       then parseRawDeerInfo <$> getRawDeerInfo
-       else return def
-
 findDeerEntry :: DeerInfo -> DeerId -> DeerEntry
 findDeerEntry di did = fromMaybe def (IM.lookup did di)
+
+writeDeerInfo :: FilePath -> DeerInfo -> IO ()
+writeDeerInfo fp di = writeFile fp (dumpDeerInfo di)

@@ -12,9 +12,9 @@ import qualified Data.ByteString.Char8 as S8
 import Data.Either.Utils
 import Data.ConfigFile
 
-getOAuthTokens :: IO (OAuth, Credential)
-getOAuthTokens = do
-    cfgVal <- readfile emptyCP { optionxform = id } "auth.conf"
+getOAuthTokens :: FilePath -> IO (OAuth, Credential)
+getOAuthTokens fp = do
+    cfgVal <- readfile emptyCP { optionxform = id } fp
     let cp = forceEither cfgVal
         getConf = S8.pack <$> forceEither . get cp "DEFAULT"
         consumerKey    = getConf "OAUTH_CONSUMER_KEY"
@@ -31,12 +31,12 @@ getOAuthTokens = do
             ]
     return (oauth, cred)
 
-postTweet :: String -> IO ()
-postTweet msg = do
-    twInfo <- getTWInfoFromEnv
+postTweet :: FilePath -> String -> IO ()
+postTweet fp msg = do
+    twInfo <- getTWInfoFromEnv fp
     print =<< withManager (\mgr -> call twInfo mgr $ update (T.pack msg))
 
-getTWInfoFromEnv :: IO TWInfo
-getTWInfoFromEnv = do
-    (oa, cred) <- getOAuthTokens
+getTWInfoFromEnv :: FilePath -> IO TWInfo
+getTWInfoFromEnv fp = do
+    (oa, cred) <- getOAuthTokens fp
     return $ (setCredential oa cred def) { twProxy = Nothing }

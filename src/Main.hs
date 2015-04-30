@@ -14,6 +14,7 @@ import Data.BigBunnyAndDeer.Util
 import Data.BigBunnyAndDeer.Twitter
 import Data.BigBunnyAndDeer.BigBunny
 
+import Data.Default
 import Data.Random.RVar
 import Data.Random.Shuffle.Weighted
 
@@ -63,8 +64,7 @@ pickNextDeer = do
 
 main :: IO ()
 main = do
-    db <- fetchDatabase
-    (did,dtext) <- runBigBunny db pickNextDeer
+    (did,dtext) <- runBigBunny def pickNextDeer
     let msg = printf "%d. %s\n" did dtext
     putStrLn ("Posting message: " ++ msg)
-    postTweet msg
+    postTweet (authFilePath def) msg

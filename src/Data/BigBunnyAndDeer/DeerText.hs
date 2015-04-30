@@ -14,8 +14,6 @@ import Network.Curl
 import Data.BigBunnyAndDeer.Type
 import qualified Data.IntMap as IM
 
-type DeerTextDb = IM.IntMap DeerText
-
 allDeerIds :: DeerTextDb -> [DeerId]
 allDeerIds = IM.keys
 
@@ -25,16 +23,12 @@ lookupDeerText = flip IM.lookup
 findDeerText :: DeerTextDb -> DeerId -> DeerText
 findDeerText db did = fromJust (lookupDeerText db did)
 
-databaseLink :: URLString
-databaseLink = "https://gist.githubusercontent.com/Javran/\
-             \8595d3587a8aa0c5255f/raw/gistfile1.md"
+fetchDatabase :: URLString -> IO DeerTextDb
+fetchDatabase url = parseRawDatabase <$> fetchRawDatabase url
 
-fetchDatabase :: IO DeerTextDb
-fetchDatabase = parseRawDatabase <$> fetchRawDatabase
-
-fetchRawDatabase :: IO String
-fetchRawDatabase = do
-    result <- curlGetString databaseLink []
+fetchRawDatabase :: URLString -> IO String
+fetchRawDatabase url = do
+    result <- curlGetString url []
     case result of
         (CurlOK, s) -> return s
         (err,_) -> error ("CURL_ERROR: " ++ show err)
