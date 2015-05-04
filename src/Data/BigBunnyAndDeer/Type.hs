@@ -1,9 +1,11 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
 module Data.BigBunnyAndDeer.Type where
 
 import Network.Curl
 import Data.Default
 import Control.Monad.State
 import Control.Monad.Reader
+import Data.Monoid
 import qualified Data.IntMap as IM
 
 type DeerId = Int
@@ -34,3 +36,11 @@ instance Default BigBunnyConfig where
 instance Default DeerEntry where
     def = DeerEntry def def
 
+instance Monoid DeerEntry where
+    mempty = def
+    (DeerEntry t1 l1) `mappend` (DeerEntry t2 l2) =
+        DeerEntry (t1+t2) (max l1 l2)
+
+instance Monoid DeerInfo where
+    mempty = def
+    mappend = IM.unionWith (<>)
