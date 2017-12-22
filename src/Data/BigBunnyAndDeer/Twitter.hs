@@ -3,11 +3,8 @@ module Data.BigBunnyAndDeer.Twitter
   ( postTweet
   ) where
 
-import Control.Applicative
 import qualified Data.Text as T
 import Web.Twitter.Conduit hiding (map,lookup)
-import Network.HTTP.Conduit
-import Web.Authenticate.OAuth
 import qualified Data.ByteString.Char8 as S8
 import Data.Either.Utils
 import Data.ConfigFile
@@ -34,7 +31,8 @@ getOAuthTokens fp = do
 postTweet :: FilePath -> String -> IO ()
 postTweet fp msg = do
     twInfo <- getTWInfoFromEnv fp
-    print =<< withManager (\mgr -> call twInfo mgr $ update (T.pack msg))
+    mgr <- newManager tlsManagerSettings
+    print =<< call twInfo mgr (update (T.pack msg))
 
 getTWInfoFromEnv :: FilePath -> IO TWInfo
 getTWInfoFromEnv fp = do

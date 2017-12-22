@@ -7,13 +7,13 @@ module Data.BigBunnyAndDeer.DeerInfo
   ) where
 
 import Data.Maybe
-import Control.Applicative
 import Control.Arrow
 import Control.Monad.IO.Class
 import System.Directory
 import qualified System.IO.Strict as SIO
 import qualified Data.IntMap as IM
 import Data.Default
+import Data.Coerce
 
 import Data.BigBunnyAndDeer.Type
 
@@ -21,7 +21,7 @@ deerEntryToPair :: DeerEntry -> (Int, Maybe Integer)
 deerEntryToPair (DeerEntry a b) = (a,b)
 
 updateDeerInfo :: DeerId -> Integer -> DeerInfo -> DeerInfo
-updateDeerInfo did newTS = IM.alter (Just . alterEntry) did
+updateDeerInfo did newTS = coerce $ IM.alter (Just . alterEntry) did
   where
     alterEntry :: Maybe DeerEntry -> DeerEntry
     alterEntry old = case old of
@@ -34,7 +34,7 @@ fetchDeerInfo fp = do
     b <- liftIO $ doesFileExist fp
     if b
        then parseRawDeerInfo <$> getRawDeerInfo fp
-       else return def
+       else return (coerce (def :: IM.IntMap DeerEntry))
 
 getRawDeerInfo :: FilePath -> IO String
 getRawDeerInfo = SIO.readFile
@@ -44,6 +44,7 @@ parseLine = read
 
 dumpDeerInfo :: DeerInfo -> String
 dumpDeerInfo =
+    coerce >>>
     IM.toList >>>
     map (second deerEntryToPair >>> show) >>>
     unlines
@@ -52,10 +53,10 @@ parseRawDeerInfo :: String -> DeerInfo
 parseRawDeerInfo =
     lines >>>
     map (parseLine >>> second (uncurry DeerEntry)) >>>
-    IM.fromList
+    IM.fromList >>> DeerInfo
 
 findDeerEntry :: DeerInfo -> DeerId -> DeerEntry
-findDeerEntry di did = fromMaybe def (IM.lookup did di)
+findDeerEntry di did = fromMaybe def (IM.lookup did (coerce di))
 
 writeDeerInfo :: FilePath -> DeerInfo -> IO ()
 writeDeerInfo fp di = writeFile fp (dumpDeerInfo di)

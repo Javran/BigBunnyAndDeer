@@ -15,7 +15,16 @@ cabal-version:       >=1.10
 
 executable BigBunnyAndDeer
   main-is:             Main.hs
-  build-depends:       base >=4.7 && <4.8,
+  other-modules:       Data.BigBunnyAndDeer.BigBunny
+                     , Data.BigBunnyAndDeer.DeerInfo
+                     , Data.BigBunnyAndDeer.DeerText
+                     , Data.BigBunnyAndDeer.OptParse
+                     , Data.BigBunnyAndDeer.Parens
+                     , Data.BigBunnyAndDeer.Twitter
+                     , Data.BigBunnyAndDeer.Type
+                     , Data.BigBunnyAndDeer.Util
+
+  build-depends:       base <5,
                        curl,
                        time,
                        MonadRandom,
@@ -39,5 +48,6 @@ executable BigBunnyAndDeer
                        transformers,
                        optparse-applicative,
                        split
+                     , http-client-tls
   hs-source-dirs:      src
   default-language:    Haskell2010

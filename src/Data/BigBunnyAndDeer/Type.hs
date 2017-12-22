@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 module Data.BigBunnyAndDeer.Type where
 
 import Network.Curl
@@ -17,7 +17,7 @@ data DeerEntry = DeerEntry
   , lastAccess :: Maybe Integer
   }
 
-type DeerInfo = IM.IntMap DeerEntry
+newtype DeerInfo = DeerInfo (IM.IntMap DeerEntry)
 
 type BigBunnyT m a = StateT DeerInfo (ReaderT (DeerTextDb,BigBunnyConfig) m) a
 
@@ -42,5 +42,5 @@ instance Monoid DeerEntry where
         DeerEntry (t1+t2) (max l1 l2)
 
 instance Monoid DeerInfo where
-    mempty = def
-    mappend = IM.unionWith (<>)
+    mempty = DeerInfo def
+    mappend (DeerInfo dx) (DeerInfo dy) = DeerInfo (IM.unionWith (<>) dx dy)

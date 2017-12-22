@@ -2,6 +2,7 @@ module Data.BigBunnyAndDeer.OptParse where
 
 import Data.Default
 import Options.Applicative
+import Data.Semigroup
 import Data.BigBunnyAndDeer.Type
 
 configP :: Parser BigBunnyConfig
